@@ -1,0 +1,47 @@
+/* One variable display face, used with restraint. Body stays on system-ui for low-end phones. */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap');
+
+:root {
+	--ink: #07211d;
+	--canopy: #0e4d42;
+	--river: #1fb8a6;
+	--sun: #f4b23e;
+	--paper: #f3f6f4;
+	--mist: #dce5e1;
+	--muted: #5a6b66;
+	--danger: #c0392b;
+
+	--display: 'Bricolage Grotesque', system-ui, sans-serif;
+	--body:
+		system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: var(--body);
+	color: var(--ink);
+	-webkit-text-size-adjust: 100%;
+	text-rendering: optimizeLegibility;
+}
+
+:where(button, input) {
+	font: inherit;
+}
+
+:where(a) {
+	color: inherit;
+}
+
+:where(:focus-visible) {
+	outline: 3px solid var(--river);
+	outline-offset: 2px;
+}
