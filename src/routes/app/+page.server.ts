@@ -81,12 +81,12 @@ function parseVisitante(form: FormData) {
 	if (!Number.isInteger(edad) || edad < 0 || edad > 120)
 		return { error: 'La edad debe ser un número entre 0 y 120.', campo: 'edad' };
 
-	const genero = String(form.get('genero') ?? '');
-	if (genero !== 'Masculino' && genero !== 'Femenino')
+	const genero = UP(form.get('genero'));
+	if (genero !== 'MASCULINO' && genero !== 'FEMENINO')
 		return { error: 'Elige el género.', campo: 'genero' };
 
-	const discapacidad = String(form.get('discapacidad') ?? '');
-	if (discapacidad !== 'si' && discapacidad !== 'no')
+	const discapacidad = UP(form.get('discapacidad'));
+	if (discapacidad !== 'SI' && discapacidad !== 'NO')
 		return { error: 'Indica si cuenta con alguna discapacidad.', campo: 'discapacidad' };
 
 	let telefono: string;

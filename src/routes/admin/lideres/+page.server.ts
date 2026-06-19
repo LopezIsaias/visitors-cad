@@ -91,6 +91,73 @@ export const actions: Actions = {
 			return fail(400, { error: 'No se pudo guardar el perfil. Intenta de nuevo.' });
 		}
 
-		return { ok: true, email };
+		return { form: 'crear', ok: true, email };
+	},
+
+	editar: async ({ request, locals }) => {
+		await requireSuperadmin(locals);
+		const form = await request.formData();
+		const id = String(form.get('id') ?? '');
+		const nombre = String(form.get('nombre') ?? '').trim().toUpperCase();
+		const email = String(form.get('email') ?? '').trim().toLowerCase();
+		const cadId = Number(form.get('cad_id'));
+
+		if (!id) return fail(400, { form: 'editar', error: 'Datos incompletos.' });
+		if (!nombre) return fail(400, { form: 'editar', error: 'Escribe el nombre del líder.' });
+		if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
+			return fail(400, { form: 'editar', error: 'Correo inválido.' });
+		if (!cadId) return fail(400, { form: 'editar', error: 'Elige un CAD.' });
+
+		// El CAD no debe pertenecer a otro líder.
+		const { data: ocupa } = await locals.supabase
+			.from('perfiles')
+			.select('id')
+			.eq('rol', 'lider')
+			.eq('cad_id', cadId)
+			.neq('id', id)
+			.maybeSingle();
+		if (ocupa) return fail(400, { form: 'editar', error: 'Ese CAD ya tiene otro líder.' });
+
+		const { error: ePerfil } = await supabaseAdmin
+			.from('perfiles')
+			.update({ nombre, cad_id: cadId })
+			.eq('id', id);
+		if (ePerfil) return fail(400, { form: 'editar', error: 'No se pudo actualizar el perfil.' });
+
+		const { error: eAuth } = await supabaseAdmin.auth.admin.updateUserById(id, { email });
+		if (eAuth)
+			return fail(400, {
+				form: 'editar',
+				error: eAuth.message?.includes('already')
+					? 'Ya existe una cuenta con ese correo.'
+					: 'Perfil actualizado, pero no se pudo cambiar el correo.'
+			});
+
+		return { form: 'editar', ok: true };
+	},
+
+	eliminar: async ({ request, locals }) => {
+		await requireSuperadmin(locals);
+		const id = String((await request.formData()).get('id') ?? '');
+		if (!id) return fail(400, { form: 'eliminar', error: 'Datos incompletos.' });
+
+		// No se puede borrar un líder con registros (FK registros.lider_id → auth.users).
+		const { count } = await locals.supabase
+			.from('registros')
+			.select('id', { count: 'exact', head: true })
+			.eq('lider_id', id);
+		if (count && count > 0)
+			return fail(400, {
+				form: 'eliminar',
+				error: `No se puede eliminar: el líder tiene ${count} registro(s). Reasigna el CAD a otra persona en su lugar.`
+			});
+
+		const { error: ePerfil } = await supabaseAdmin.from('perfiles').delete().eq('id', id);
+		if (ePerfil) return fail(400, { form: 'eliminar', error: 'No se pudo eliminar el perfil.' });
+
+		const { error: eAuth } = await supabaseAdmin.auth.admin.deleteUser(id);
+		if (eAuth) return fail(400, { form: 'eliminar', error: 'No se pudo eliminar la cuenta.' });
+
+		return { form: 'eliminar', ok: true };
 	}
 };

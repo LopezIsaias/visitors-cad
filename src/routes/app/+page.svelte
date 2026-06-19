@@ -181,8 +181,8 @@
 						<span>Género</span>
 						<select name="genero" required>
 							<option value="" disabled selected>Elige…</option>
-							<option value="Masculino">Masculino</option>
-							<option value="Femenino">Femenino</option>
+							<option value="MASCULINO">Masculino</option>
+							<option value="FEMENINO">Femenino</option>
 						</select>
 					</label>
 				</div>
@@ -190,8 +190,8 @@
 					<span>¿Cuenta con alguna discapacidad?</span>
 					<select name="discapacidad" required>
 						<option value="" disabled selected>Elige…</option>
-						<option value="no">No</option>
-						<option value="si">Sí</option>
+						<option value="NO">No</option>
+						<option value="SI">Sí</option>
 					</select>
 				</label>
 				<label class="f">

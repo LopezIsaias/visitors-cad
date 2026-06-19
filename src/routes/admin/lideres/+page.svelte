@@ -4,8 +4,26 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+	let editId = $state<string | null>(null);
+	let delId = $state<string | null>(null);
 	let msg = $state<string | null>(null);
 	let err = $state<string | null>(null);
+
+	function submit(okMsg: string | ((d: any) => string)) {
+		return () =>
+			async ({ result, update }: { result: any; update: () => Promise<void> }) => {
+				const d = result.data ?? {};
+				if (result.type === 'success' && d.ok) {
+					await invalidateAll();
+					msg = typeof okMsg === 'function' ? okMsg(d) : okMsg;
+					err = null;
+					editId = null;
+					delId = null;
+				} else if (result.type === 'failure') {
+					err = d.error ?? 'Error.';
+				} else await update();
+			};
+	}
 </script>
 
 <svelte:head><title>Líderes — Admin</title></svelte:head>
@@ -23,20 +41,7 @@
 	{#if data.cadsLibres.length === 0}
 		<p class="nota">Todos los CADs ya tienen líder. Crea un CAD nuevo para asignar otro.</p>
 	{:else}
-		<form
-			method="POST"
-			action="?/crear"
-			use:enhance={() => async ({ result, update }) => {
-				const d = (result as any).data ?? {};
-				if (result.type === 'success' && d.ok) {
-					await invalidateAll();
-					msg = `Líder creado: ${d.email}`;
-					err = null;
-				} else if (result.type === 'failure') {
-					err = d.error ?? 'Error.';
-				} else await update();
-			}}
-		>
+		<form method="POST" action="?/crear" use:enhance={submit((d) => `Líder creado: ${d.email}`)}>
 			<div class="grid">
 				<label><span>Nombre</span><input name="nombre" style="text-transform:uppercase" required /></label>
 				<label><span>Correo</span><input name="email" type="email" autocapitalize="none" required /></label>
@@ -55,13 +60,52 @@
 
 <div class="tablewrap">
 	<table>
-		<thead><tr><th>Nombre</th><th>Correo</th><th>CAD</th></tr></thead>
+		<thead><tr><th>Nombre</th><th>Correo</th><th>CAD</th><th class="acc">Acción</th></tr></thead>
 		<tbody>
 			{#if data.lideres.length === 0}
-				<tr><td colspan="3" class="vacio">Aún no hay líderes.</td></tr>
+				<tr><td colspan="4" class="vacio">Aún no hay líderes.</td></tr>
 			{:else}
 				{#each data.lideres as l (l.id)}
-					<tr><td>{l.nombre}</td><td class="mono">{l.email}</td><td>{l.cad}</td></tr>
+					{#if editId === l.id}
+						<tr class="editing">
+							<td>
+								<form id="ed{l.id}" method="POST" action="?/editar" use:enhance={submit('Líder actualizado.')}>
+									<input type="hidden" name="id" value={l.id} />
+									<input name="nombre" class="up" value={l.nombre} required />
+								</form>
+							</td>
+							<td><input name="email" type="email" autocapitalize="none" value={l.email} form="ed{l.id}" required /></td>
+							<td>
+								<select name="cad_id" form="ed{l.id}" required>
+									{#if l.cad_id}<option value={l.cad_id} selected>{l.cad}</option>{/if}
+									{#each data.cadsLibres as c}<option value={c.id}>{c.nombre}</option>{/each}
+								</select>
+							</td>
+							<td class="acc">
+								<button type="submit" form="ed{l.id}" class="mini primary">Guardar</button>
+								<button type="button" class="mini" onclick={() => (editId = null)}>Cancelar</button>
+							</td>
+						</tr>
+					{:else}
+						<tr>
+							<td>{l.nombre}</td>
+							<td class="mono">{l.email}</td>
+							<td>{l.cad}</td>
+							<td class="acc">
+								{#if delId === l.id}
+									<span class="confirm">¿Eliminar?</span>
+									<form class="inline" method="POST" action="?/eliminar" use:enhance={submit('Líder eliminado.')}>
+										<input type="hidden" name="id" value={l.id} />
+										<button type="submit" class="mini danger">Sí</button>
+									</form>
+									<button type="button" class="mini" onclick={() => (delId = null)}>No</button>
+								{:else}
+									<button type="button" class="mini" onclick={() => { editId = l.id; delId = null; err = null; }}>Editar</button>
+									<button type="button" class="mini ghost-danger" onclick={() => { delId = l.id; editId = null; err = null; }}>Eliminar</button>
+								{/if}
+							</td>
+						</tr>
+					{/if}
 				{/each}
 			{/if}
 		</tbody>
@@ -85,10 +129,20 @@
 	.primary { background: var(--canopy); color: var(--paper); border: none; border-radius: 10px; padding: 0.75rem 1.3rem; font-weight: 700; cursor: pointer; }
 	.tablewrap { border: 1px solid var(--mist); border-radius: 12px; overflow-x: auto; }
 	table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-	th, td { padding: 0.6rem 0.9rem; text-align: left; border-bottom: 1px solid var(--mist); }
+	th, td { padding: 0.6rem 0.9rem; text-align: left; border-bottom: 1px solid var(--mist); vertical-align: middle; }
 	thead th { background: var(--paper); font-size: 0.74rem; text-transform: uppercase; color: var(--muted); }
 	tbody tr:last-child td { border-bottom: none; }
+	tr.editing td { background: rgba(31,184,166,0.06); }
+	td input, td select { padding: 0.45rem 0.6rem; border: 1.5px solid var(--river); border-radius: 8px; }
+	.up { text-transform: uppercase; }
 	.mono { font-family: ui-monospace, monospace; font-size: 0.85rem; }
+	.acc { white-space: nowrap; text-align: right; }
+	.inline { display: inline; }
+	.confirm { font-size: 0.82rem; color: var(--danger); margin-right: 0.3rem; }
+	.mini { border: 1.5px solid var(--mist); background: #fff; border-radius: 8px; padding: 0.4rem 0.7rem; cursor: pointer; margin-left: 0.3rem; font-size: 0.82rem; }
+	.mini.primary { background: var(--canopy); color: var(--paper); border-color: var(--canopy); }
+	.mini.danger { background: var(--danger); color: var(--paper); border-color: var(--danger); }
+	.mini.ghost-danger { color: var(--danger); border-color: rgba(192,57,43,0.4); }
 	.vacio { color: var(--muted); text-align: center; padding: 1.4rem; }
 	@media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
 </style>

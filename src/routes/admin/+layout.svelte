@@ -8,6 +8,7 @@
 		{ href: '/admin', label: 'Dashboard', exact: true },
 		{ href: '/admin/cads', label: 'CADs', exact: false },
 		{ href: '/admin/lideres', label: 'Líderes', exact: false },
+		{ href: '/admin/profesiones', label: 'Profesiones', exact: false },
 		{ href: '/admin/registros', label: 'Registros', exact: false }
 	];
 
