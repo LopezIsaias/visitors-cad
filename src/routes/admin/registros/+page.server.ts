@@ -17,14 +17,22 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 };
 
 export const actions: Actions = {
-	// Borra un registro (la visita). El visitante se conserva como recurrente.
+	// Borra las visitas de un visitante en un día (el reporte colapsa a 1 fila/día).
+	// El visitante se conserva como recurrente.
 	eliminar: async ({ request, locals }) => {
 		await requireSuperadmin(locals);
-		const id = Number((await request.formData()).get('id'));
-		if (!id) return fail(400, { form: 'eliminar', error: 'Registro inválido.' });
+		const form = await request.formData();
+		const visitanteId = Number(form.get('visitante_id'));
+		const fecha = String(form.get('fecha') ?? '');
+		if (!visitanteId || !/^\d{4}-\d{2}-\d{2}$/.test(fecha))
+			return fail(400, { form: 'eliminar', error: 'Registro inválido.' });
 
 		// service_role: registros no tiene policy DELETE en RLS.
-		const { error } = await supabaseAdmin.from('registros').delete().eq('id', id);
+		const { error } = await supabaseAdmin
+			.from('registros')
+			.delete()
+			.eq('visitante_id', visitanteId)
+			.eq('fecha', fecha);
 		if (error) return fail(400, { form: 'eliminar', error: 'No se pudo eliminar el registro.' });
 		return { form: 'eliminar', ok: true };
 	},

@@ -12,7 +12,7 @@
 
 	let msg = $state<string | null>(null);
 	let err = $state<string | null>(null);
-	let delId = $state<number | null>(null);
+	let delId = $state<string | null>(null);
 	let delTodos = $state(false);
 
 	function onResult(okMsg: string | ((d: any) => string)) {
@@ -127,21 +127,23 @@
 			{#if data.filas.length === 0}
 				<tr><td colspan="11" class="vacio">Sin registros para este filtro.</td></tr>
 			{:else}
-				{#each data.filas as f (f.id)}
+				{#each data.filas as f (f.visitanteId + '|' + f.fechaIso)}
+					{@const key = f.visitanteId + '|' + f.fechaIso}
 					<tr>
 						<td>{f.cad}</td><td class="nowrap">{f.fecha}</td><td>{f.nombreCompleto}</td>
 						<td class="r">{f.edad ?? ''}</td><td>{f.genero}</td><td>{f.discapacidad}</td>
 						<td class="r">{f.minutos ?? ''}</td><td class="mono">{f.telefono}</td>
 						<td class="mono">{f.dni}</td><td>{f.ocupacion}</td>
 						<td class="acc">
-							{#if delId === f.id}
+							{#if delId === key}
 								<form method="POST" action="?/eliminar" class="inline" use:enhance={onResult('Registro eliminado.')}>
-									<input type="hidden" name="id" value={f.id} />
+									<input type="hidden" name="visitante_id" value={f.visitanteId} />
+									<input type="hidden" name="fecha" value={f.fechaIso} />
 									<button type="submit" class="mini danger">Sí</button>
 								</form>
 								<button type="button" class="mini" onclick={() => (delId = null)}>No</button>
 							{:else}
-								<button type="button" class="mini ghost-danger" onclick={() => { delId = f.id; err = null; }}>Eliminar</button>
+								<button type="button" class="mini ghost-danger" onclick={() => { delId = key; err = null; }}>Eliminar</button>
 							{/if}
 						</td>
 					</tr>

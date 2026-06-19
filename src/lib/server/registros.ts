@@ -7,7 +7,8 @@ export type Filtro = {
 };
 
 export type FilaReporte = {
-	id: number;
+	visitanteId: number;
+	fechaIso: string; // YYYY-MM-DD (para borrar el grupo visitante-día)
 	cad: string;
 	fecha: string; // DD/MM/AAAA
 	nombreCompleto: string;
@@ -82,7 +83,7 @@ export async function fetchReporte(
 	let q = supabase
 		.from('registros')
 		.select(
-			'id, fecha, minutos, estado, hora_entrada, cads(nombre), visitantes(nombre, apellido, edad, genero, discapacidad, telefono, dni, ocupacion)'
+			'visitante_id, fecha, minutos, estado, hora_entrada, cads(nombre), visitantes(nombre, apellido, edad, genero, discapacidad, telefono, dni, ocupacion)'
 		)
 		.order('fecha', { ascending: false })
 		.order('hora_entrada', { ascending: false });
@@ -94,7 +95,10 @@ export async function fetchReporte(
 
 	const { data } = await q;
 
-	return (data ?? []).map((row) => {
+	// Colapsa a una fila por (visitante, fecha): suma minutos de las visitas
+	// finalizadas; si alguna sigue abierta, el estado del día es "en_curso".
+	const grupos = new Map<string, FilaReporte & { _min: number; _hayMin: boolean }>();
+	for (const row of data ?? []) {
 		const v = flat(row.visitantes) as
 			| {
 					nombre: string;
@@ -108,19 +112,41 @@ export async function fetchReporte(
 			  }
 			| undefined;
 		const cad = flat(row.cads) as { nombre: string } | undefined;
-		return {
-			id: row.id as number,
-			cad: cad?.nombre ?? '',
-			fecha: ddmmaaaa(row.fecha as string),
-			nombreCompleto: `${v?.nombre ?? ''} ${v?.apellido ?? ''}`.trim(),
-			edad: v?.edad ?? null,
-			genero: v?.genero ?? '',
-			discapacidad: v?.discapacidad ?? '',
-			minutos: (row.minutos as number | null) ?? null,
-			telefono: v?.telefono ?? '',
-			dni: v?.dni ?? '',
-			ocupacion: v?.ocupacion ?? '',
-			estado: row.estado as string
-		};
-	});
+		const visitanteId = row.visitante_id as number;
+		const fechaIso = row.fecha as string;
+		const key = `${visitanteId}|${fechaIso}`;
+		const min = row.minutos as number | null;
+
+		let g = grupos.get(key);
+		if (!g) {
+			g = {
+				visitanteId,
+				fechaIso,
+				cad: cad?.nombre ?? '',
+				fecha: ddmmaaaa(fechaIso),
+				nombreCompleto: `${v?.nombre ?? ''} ${v?.apellido ?? ''}`.trim(),
+				edad: v?.edad ?? null,
+				genero: v?.genero ?? '',
+				discapacidad: v?.discapacidad ?? '',
+				minutos: null,
+				telefono: v?.telefono ?? '',
+				dni: v?.dni ?? '',
+				ocupacion: v?.ocupacion ?? '',
+				estado: 'finalizado',
+				_min: 0,
+				_hayMin: false
+			};
+			grupos.set(key, g);
+		}
+		if (min != null) {
+			g._min += min;
+			g._hayMin = true;
+		}
+		if (row.estado === 'en_curso') g.estado = 'en_curso';
+	}
+
+	return [...grupos.values()].map(({ _min, _hayMin, ...fila }) => ({
+		...fila,
+		minutos: _hayMin ? _min : null
+	}));
 }

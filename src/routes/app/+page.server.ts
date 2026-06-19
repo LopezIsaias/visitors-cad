@@ -105,6 +105,26 @@ function parseVisitante(form: FormData) {
 	return { data: { dni, nombre, apellido, edad, genero, discapacidad, telefono, ocupacion } };
 }
 
+// Reglas de re-registro en el día (Lima): máx. 1 sesión activa y máx. 2 visitas/día.
+// Devuelve el mensaje a mostrar, o null si se permite registrar.
+async function avisoReRegistro(
+	supabase: App.Locals['supabase'],
+	visitanteId: number,
+	cadId: number,
+	hoy: string
+): Promise<string | null> {
+	const { data } = await supabase
+		.from('registros')
+		.select('estado')
+		.eq('visitante_id', visitanteId)
+		.eq('cad_id', cadId)
+		.eq('fecha', hoy);
+	const regs = data ?? [];
+	if (regs.some((r) => r.estado === 'en_curso')) return 'El visitante tiene sesión activa hoy.';
+	if (regs.length >= 2) return 'El visitante ya alcanzó el máximo de 2 registros hoy.';
+	return null;
+}
+
 export const actions: Actions = {
 	// Alta de visitante nuevo (o reuso si el DNI ya existe en el CAD) + registro de entrada.
 	nuevo: async ({ request, locals }) => {
@@ -128,6 +148,8 @@ export const actions: Actions = {
 
 		if (existente) {
 			visitanteId = existente.id;
+			const aviso = await avisoReRegistro(supabase, visitanteId, perfil.cad_id, hoyLima());
+			if (aviso) return fail(400, { form: 'nuevo', error: aviso });
 		} else {
 			const { data: creado, error: eIns } = await supabase
 				.from('visitantes')
@@ -142,7 +164,11 @@ export const actions: Actions = {
 		const { error: eReg } = await supabase
 			.from('registros')
 			.insert({ visitante_id: visitanteId, cad_id: perfil.cad_id, lider_id: userId });
-		if (eReg) return fail(400, { form: 'nuevo', error: 'No se pudo crear el registro de entrada.' });
+		if (eReg)
+			return fail(400, {
+				form: 'nuevo',
+				error: eReg.code === '23505' ? 'El visitante tiene sesión activa hoy.' : 'No se pudo crear el registro de entrada.'
+			});
 
 		return { form: 'nuevo', ok: true };
 	},
@@ -163,6 +189,9 @@ export const actions: Actions = {
 
 		const supabase = locals.supabase;
 
+		const aviso = await avisoReRegistro(supabase, visitanteId, perfil.cad_id, hoyLima());
+		if (aviso) return fail(400, { form: 'visita', error: aviso });
+
 		// Solo actualiza la edad si cambió (RLS limita al CAD del líder).
 		await supabase
 			.from('visitantes')
@@ -173,7 +202,11 @@ export const actions: Actions = {
 		const { error: eReg } = await supabase
 			.from('registros')
 			.insert({ visitante_id: visitanteId, cad_id: perfil.cad_id, lider_id: userId });
-		if (eReg) return fail(400, { form: 'visita', error: 'No se pudo registrar la visita.' });
+		if (eReg)
+			return fail(400, {
+				form: 'visita',
+				error: eReg.code === '23505' ? 'El visitante tiene sesión activa hoy.' : 'No se pudo registrar la visita.'
+			});
 
 		return { form: 'visita', ok: true };
 	},
