@@ -7,6 +7,7 @@ export type Filtro = {
 };
 
 export type FilaReporte = {
+	id: number;
 	cad: string;
 	fecha: string; // DD/MM/AAAA
 	nombreCompleto: string;
@@ -56,6 +57,23 @@ function rango(modo: Filtro['modo'], valor: string): [string, string] | null {
 	return [`${valor}-01-01`, `${valor}-12-31`];
 }
 
+// Borra los registros que coinciden con el filtro (mismo criterio que el reporte).
+// Conserva los visitantes (quedan como recurrentes). Devuelve cuántos borró.
+// Requiere un cliente que pueda saltarse RLS (service_role).
+export async function borrarRegistros(
+	supabase: SupabaseClient,
+	filtro: Filtro
+): Promise<{ count: number; error: string | null }> {
+	const r = rango(filtro.modo, filtro.valor);
+	if (!r) return { count: 0, error: 'Filtro de fecha inválido.' };
+
+	let q = supabase.from('registros').delete({ count: 'exact' }).gte('fecha', r[0]).lte('fecha', r[1]);
+	if (filtro.cad && filtro.cad !== 'all') q = q.eq('cad_id', Number(filtro.cad));
+
+	const { count, error } = await q;
+	return { count: count ?? 0, error: error ? error.message : null };
+}
+
 // Lee registros aplicando filtros y los mapea a las columnas del reporte (§4).
 export async function fetchReporte(
 	supabase: SupabaseClient,
@@ -64,7 +82,7 @@ export async function fetchReporte(
 	let q = supabase
 		.from('registros')
 		.select(
-			'fecha, minutos, estado, hora_entrada, cads(nombre), visitantes(nombre, apellido, edad, genero, discapacidad, telefono, dni, ocupacion)'
+			'id, fecha, minutos, estado, hora_entrada, cads(nombre), visitantes(nombre, apellido, edad, genero, discapacidad, telefono, dni, ocupacion)'
 		)
 		.order('fecha', { ascending: false })
 		.order('hora_entrada', { ascending: false });
@@ -91,6 +109,7 @@ export async function fetchReporte(
 			| undefined;
 		const cad = flat(row.cads) as { nombre: string } | undefined;
 		return {
+			id: row.id as number,
 			cad: cad?.nombre ?? '',
 			fecha: ddmmaaaa(row.fecha as string),
 			nombreCompleto: `${v?.nombre ?? ''} ${v?.apellido ?? ''}`.trim(),

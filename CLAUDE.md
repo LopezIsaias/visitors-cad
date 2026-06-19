@@ -135,7 +135,7 @@ Schema `public`. No recrear; usar tal cual. Resumen:
 - **perfiles:** cada quien ve el suyo; superadmin ve/gestiona todos.
 - **ocupaciones:** todos leen; solo superadmin modifica.
 - **visitantes:** líder ve/gestiona los de su CAD; superadmin todo.
-- **registros:** líder ve/crea los de su CAD; superadmin todo. **Nadie borra** (no existe policy DELETE). Update permitido para su CAD (se usa para finalizar).
+- **registros:** líder ve/crea los de su CAD; superadmin todo. No hay policy DELETE en RLS (el líder no borra). **El superadmin sí puede borrar** registros desde su vista, vía endpoint de servidor con `SUPABASE_SECRET_KEY` (service_role salta RLS); al borrar se conservan los `visitantes` (quedan como recurrentes). Update permitido para su CAD (se usa para finalizar).
 
 ### Cron
 - Job `autocierre-cad-18h` (pg_cron) a las `0 23 * * *` UTC → `select public.autocierre_18();`.
@@ -181,7 +181,7 @@ Schema `public`. No recrear; usar tal cual. Resumen:
 - **Zona horaria de operación:** America/Lima (UTC-5) para fechas, "hoy" y el corte de las 18:00.
 - **Formato de fecha visible:** DD/MM/AAAA.
 - **Nunca** exponer `SUPABASE_SECRET_KEY` al cliente; usarla solo en endpoints `+server.ts` / `+page.server.ts`.
-- **No** implementar borrado de registros en ninguna parte.
+- El **líder no** borra ni edita registros. El **superadmin sí** puede eliminar registros (individual o todos los del filtro) desde su vista; los `visitantes` se conservan como recurrentes. Se hace en endpoint de servidor con la clave secreta.
 - Validaciones de formulario deben **bloquear el guardado** e **indicar el dato faltante** (especialmente teléfono y DNI).
 - Mantener la vista del líder lo más ligera posible (mínimo JS, mínimo peso).
 - **Diseño de interfaz:** para cualquier trabajo de UI (vistas, componentes, estilos), usar la skill `frontend-design` para lograr un diseño intencional y amigable que no se vea genérico (tipografía, jerarquía visual, espaciado). Priorizar la **usabilidad móvil del líder digital**: botones grandes y fáciles de tocar, alto contraste, mínimo desorden en pantalla, texto legible bajo luz solar y en pantallas pequeñas, y formularios que se llenan rápido con una sola mano. La vista del superadmin (PC) puede ser más densa (tablas, filtros, dashboard), pero igual clara y ordenada.
