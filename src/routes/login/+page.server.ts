@@ -1,6 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
+// Contraseña fija de todos los líderes (§3). El líder entra solo con correo;
+// el servidor usa esta clave por debajo. El superadmin sí escribe su contraseña.
+const PASSWORD_LIDER = 'clave*2025';
+
 // Destination per role. Superadmin → escritorio; líder → móvil.
 async function destForUser(
 	supabase: App.Locals['supabase'],
@@ -29,13 +33,21 @@ export const actions: Actions = {
 			.toLowerCase();
 		const password = String(form.get('password') ?? '');
 
-		if (!email || !password) {
-			return fail(400, { email, error: 'Ingresa tu correo y contraseña.' });
+		if (!email) {
+			return fail(400, { email, error: 'Ingresa tu correo.' });
 		}
 
-		const { error } = await supabase.auth.signInWithPassword({ email, password });
+		// Sin contraseña → acceso de líder con la clave fija. Con contraseña → superadmin.
+		const clave = password || PASSWORD_LIDER;
+
+		const { error } = await supabase.auth.signInWithPassword({ email, password: clave });
 		if (error) {
-			return fail(400, { email, error: 'Correo o contraseña incorrectos.' });
+			return fail(400, {
+				email,
+				error: password
+					? 'Correo o contraseña incorrectos.'
+					: 'Correo no reconocido. Verifica con el administrador.'
+			});
 		}
 
 		const {

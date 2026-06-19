@@ -4,6 +4,7 @@
 
 	let { form }: { form: ActionData } = $props();
 	let loading = $state(false);
+	let admin = $state(false);
 </script>
 
 <svelte:head>
@@ -50,23 +51,32 @@
 				/>
 			</label>
 
-			<label class="field">
-				<span class="label">Contraseña</span>
-				<input
-					name="password"
-					type="password"
-					autocomplete="current-password"
-					required
-					placeholder="••••••••"
-				/>
-			</label>
+			{#if !admin}
+				<p class="hint">Líder digital: ingresa tu correo y pulsa Iniciar sesión.</p>
+			{/if}
+
+			{#if admin}
+				<label class="field">
+					<span class="label">Contraseña</span>
+					<input
+						name="password"
+						type="password"
+						autocomplete="current-password"
+						placeholder="••••••••"
+					/>
+				</label>
+			{/if}
 
 			{#if form?.error}
 				<p class="error" role="alert">{form.error}</p>
 			{/if}
 
 			<button class="cta" type="submit" disabled={loading}>
-				{loading ? 'Entrando…' : 'Entrar'}
+				{loading ? 'Entrando…' : 'Iniciar sesión'}
+			</button>
+
+			<button type="button" class="adminlink" onclick={() => (admin = !admin)}>
+				{admin ? 'Soy líder digital' : 'Acceso administrador'}
 			</button>
 		</form>
 
@@ -232,6 +242,27 @@
 	.cta:disabled {
 		opacity: 0.6;
 		cursor: progress;
+	}
+
+	.hint {
+		margin: -0.4rem 0 1rem;
+		font-size: 0.8rem;
+		color: var(--muted);
+	}
+
+	.adminlink {
+		display: block;
+		margin: 0.9rem auto 0;
+		background: none;
+		border: none;
+		color: var(--muted);
+		font-size: 0.8rem;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		cursor: pointer;
+	}
+	.adminlink:hover {
+		color: var(--canopy);
 	}
 
 	.foot {
