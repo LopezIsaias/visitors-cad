@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(tee /tmp/cad-dev.log)",
+      "Read(//tmp/**)",
+      "Bash(curl -s http://localhost:5173/)",
+      "Bash(pkill -f \"vite dev\")",
+      "Bash(curl -s http://localhost:5173/ -m 2)",
+      "Bash(rm -rf src/routes/api/_admintest)"
+    ]
+  }
+}
