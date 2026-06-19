@@ -51,13 +51,14 @@
 
 <div class="tablewrap">
 	<table>
-		<thead><tr><th>Nombre</th><th class="acc">Acción</th></tr></thead>
+		<thead><tr><th class="num">#</th><th>Nombre</th><th class="acc">Acción</th></tr></thead>
 		<tbody>
 			{#if filtradas.length === 0}
-				<tr><td colspan="2" class="vacio">Sin resultados.</td></tr>
+				<tr><td colspan="3" class="vacio">Sin resultados.</td></tr>
 			{:else}
-				{#each filtradas as o (o.id)}
+				{#each filtradas as o, i (o.id)}
 					<tr>
+						<td class="num">{i + 1}</td>
 						<td>
 							{#if editId === o.id}
 								<form id="ed{o.id}" method="POST" action="?/editar" use:enhance={submit('Profesión actualizada.')}>
@@ -108,6 +109,7 @@
 	table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 	th, td { padding: 0.6rem 0.9rem; text-align: left; border-bottom: 1px solid var(--mist); }
 	thead th { background: var(--paper); font-size: 0.74rem; text-transform: uppercase; color: var(--muted); }
+	.num { width: 3rem; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 	tbody tr:last-child td { border-bottom: none; }
 	td input { width: 100%; padding: 0.45rem 0.6rem; border: 1.5px solid var(--river); border-radius: 8px; }
 	.acc { white-space: nowrap; text-align: right; }
