@@ -168,15 +168,15 @@
 			<form method="POST" action="?/nuevo" use:enhance={handle('Visitante registrado. Entrada guardada.')}>
 				<label class="f">
 					<span>DNI</span>
-					<input name="dni" inputmode="numeric" maxlength="8" pattern="[0-9]{'{8}'}" required placeholder="8 dígitos" />
+					<input name="dni" inputmode="numeric" maxlength="8" pattern="[0-9]{'{8}'}" required placeholder="8 dígitos" oninput={(e) => (e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ''))} />
 					<small>Sin DNI: usa tu fecha de nacimiento DDMMAAAA (ej. 25012006).</small>
 				</label>
 				<div class="row">
-					<label class="f"><span>Nombre</span><input name="nombre" class="up" required /></label>
-					<label class="f"><span>Apellido</span><input name="apellido" class="up" required /></label>
+					<label class="f"><span>Nombre</span><input name="nombre" class="up" required oninput={(e) => (e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]/g, ''))} /></label>
+					<label class="f"><span>Apellido</span><input name="apellido" class="up" required oninput={(e) => (e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]/g, ''))} /></label>
 				</div>
 				<div class="row">
-					<label class="f"><span>Edad</span><input name="edad" type="number" inputmode="numeric" min="0" max="120" required /></label>
+					<label class="f"><span>Edad</span><input name="edad" inputmode="numeric" maxlength="3" pattern="[0-9]+" required oninput={(e) => (e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ''))} /></label>
 					<label class="f">
 						<span>Género</span>
 						<select name="genero" required>
@@ -196,10 +196,10 @@
 				</label>
 				<label class="f">
 					<span>Teléfono</span>
-					<input name="telefono" inputmode="numeric" maxlength="9" pattern="[0-9]{'{9}'}" disabled={sinTelefono} placeholder="9 dígitos" />
+					<input name="telefono" inputmode="numeric" maxlength="9" pattern="[0-9]{'{9}'}" disabled={sinTelefono} placeholder="9 dígitos" oninput={(e) => (e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ''))} />
 				</label>
 				<label class="check">
-					<input type="checkbox" name="sin_telefono" bind:checked={sinTelefono} />
+					<input type="checkbox" name="sin_telefono" bind:checked={sinTelefono} onchange={(e) => { if (e.currentTarget.checked) e.currentTarget.form.telefono.value = ''; }} />
 					No cuenta con teléfono
 				</label>
 				<label class="f">
@@ -233,7 +233,7 @@
 					</div>
 					<label class="f">
 						<span>Edad (editable)</span>
-						<input name="edad" type="number" inputmode="numeric" min="0" max="120" bind:value={edadVisita} required />
+						<input name="edad" inputmode="numeric" maxlength="3" pattern="[0-9]+" bind:value={edadVisita} required oninput={(e) => (e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ''))} />
 					</label>
 					<button class="primary full" type="submit">Registrar visita</button>
 				</form>
