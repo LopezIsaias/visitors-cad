@@ -16,6 +16,7 @@
 
 	// --- Nuevo visitante ---
 	let sinTelefono = $state(false);
+	let sinDni = $state(false);
 
 	// --- Recurrente ---
 	type Visitante = {
@@ -72,6 +73,7 @@
 		mensaje = null;
 		error = null;
 		sinTelefono = false;
+		sinDni = false;
 		term = '';
 		resultados = [];
 		elegido = null;
@@ -168,8 +170,12 @@
 			<form method="POST" action="?/nuevo" use:enhance={handle('Visitante registrado. Entrada guardada.')}>
 				<label class="f">
 					<span>DNI</span>
-					<input name="dni" inputmode="numeric" maxlength="8" pattern="[0-9]{'{8}'}" required placeholder="8 dígitos" oninput={(e) => (e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ''))} />
+					<input name="dni" inputmode="numeric" maxlength="8" pattern="[0-9]{'{8}'}" required={!sinDni} disabled={sinDni} placeholder={sinDni ? 'NO PROPORCIONÓ' : '8 dígitos'} oninput={(e) => (e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ''))} />
 					<small>Sin DNI: usa tu fecha de nacimiento DDMMAAAA (ej. 25012006).</small>
+				</label>
+				<label class="check">
+					<input type="checkbox" name="sin_dni" bind:checked={sinDni} onchange={(e) => { if (e.currentTarget.checked && e.currentTarget.form) e.currentTarget.form.dni.value = ''; }} />
+					No cuenta con DNI
 				</label>
 				<div class="row">
 					<label class="f"><span>Nombre</span><input name="nombre" class="up" required oninput={(e) => (e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]/g, ''))} /></label>

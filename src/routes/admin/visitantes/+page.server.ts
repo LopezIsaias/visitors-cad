@@ -54,14 +54,22 @@ type Visitante = {
 };
 
 // Valida y normaliza una fila del archivo. Devuelve {data} o {error}.
-function parseRow(row: Record<string, unknown>): { data: Visitante } | { error: string } {
+function parseRow(
+	row: Record<string, unknown>,
+	allowNoDni = false
+): { data: Visitante } | { error: string } {
 	const g = (k: string) => {
 		const found = Object.keys(row).find((key) => norm(key) === k);
 		return found ? String(row[found] ?? '').trim() : '';
 	};
 
-	const dni = g('DNI').replace(/\D/g, '');
-	if (!/^[0-9]{8}$/.test(dni)) return { error: `DNI inválido ("${g('DNI')}"): deben ser 8 dígitos.` };
+	let dni: string;
+	if (allowNoDni && norm(g('DNI')) === 'NO PROPORCIONO') {
+		dni = 'NO PROPORCIONÓ';
+	} else {
+		dni = g('DNI').replace(/\D/g, '');
+		if (!/^[0-9]{8}$/.test(dni)) return { error: `DNI inválido ("${g('DNI')}"): deben ser 8 dígitos.` };
+	}
 
 	const nombre = UP(g('NOMBRE'));
 	if (!nombre) return { error: 'Falta NOMBRE.' };
@@ -113,7 +121,7 @@ export const actions: Actions = {
 			DISCAPACIDAD: f.get('discapacidad'),
 			TELEFONO: f.get('telefono'),
 			OCUPACION: f.get('ocupacion')
-		});
+		}, true);
 		if ('error' in res) return fail(400, { editError: res.error });
 
 		const { error } = await supabaseAdmin.from('visitantes').update(res.data).eq('id', id);

@@ -9,6 +9,12 @@
 	let subiendo = $state(false);
 	let editando = $state<number | null>(null);
 	let guardando = $state(false);
+	let sinDniEdit = $state(false);
+
+	function abrirEdicion(v: { id: number; dni: string }) {
+		editando = v.id;
+		sinDniEdit = v.dni === 'NO PROPORCIONÓ';
+	}
 
 	function cambiarCad() {
 		goto(cad ? `?cad=${cad}` : '?', { noScroll: true });
@@ -114,8 +120,9 @@
 										}}
 									>
 										<input type="hidden" name="id" value={v.id} />
+										{#if sinDniEdit}<input type="hidden" name="dni" value="NO PROPORCIONÓ" />{/if}
 										<div class="grid">
-											<label>DNI<input name="dni" inputmode="numeric" maxlength="8" value={v.dni} required /></label>
+											<label>DNI<input name="dni" inputmode="numeric" maxlength="8" value={sinDniEdit ? '' : v.dni} required={!sinDniEdit} disabled={sinDniEdit} placeholder={sinDniEdit ? 'NO PROPORCIONÓ' : ''} /></label>
 											<label>Nombre<input name="nombre" value={v.nombre} required /></label>
 											<label>Apellido<input name="apellido" value={v.apellido} required /></label>
 											<label>Edad<input name="edad" type="number" min="0" max="120" value={v.edad} required /></label>
@@ -136,6 +143,10 @@
 												<input name="ocupacion" list="ocupaciones" value={v.ocupacion} />
 											</label>
 										</div>
+										<label class="checkdni">
+											<input type="checkbox" bind:checked={sinDniEdit} />
+											No cuenta con DNI (se guarda como NO PROPORCIONÓ)
+										</label>
 										{#if form?.editError}<p class="err" role="alert">{form.editError}</p>{/if}
 										<div class="acciones">
 											<button class="primary" type="submit" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</button>
@@ -149,7 +160,7 @@
 								<td class="mono">{v.dni}</td><td>{v.nombre}</td><td>{v.apellido}</td>
 								<td class="r">{v.edad}</td><td>{v.genero}</td><td>{v.discapacidad}</td>
 								<td class="mono">{v.telefono}</td><td>{v.ocupacion}</td>
-								<td class="r"><button type="button" class="link" onclick={() => (editando = v.id)}>Editar</button></td>
+								<td class="r"><button type="button" class="link" onclick={() => abrirEdicion(v)}>Editar</button></td>
 							</tr>
 						{/if}
 					{/each}
@@ -198,6 +209,7 @@
 	.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 0.7rem; }
 	.grid label { display: flex; flex-direction: column; font-size: 0.72rem; font-weight: 600; color: var(--muted); gap: 0.25rem; }
 	.grid input, .grid select { padding: 0.5rem 0.6rem; border: 1.5px solid var(--mist); border-radius: 8px; font-size: 0.9rem; text-transform: uppercase; }
+	.checkdni { display: flex; align-items: center; gap: 0.45rem; margin-top: 0.7rem; font-size: 0.82rem; font-weight: 600; color: var(--muted); }
 	.acciones { display: flex; gap: 0.6rem; margin-top: 0.8rem; }
 	.ghost { background: none; border: 1.5px solid var(--mist); border-radius: 10px; padding: 0.6rem 1.1rem; font-weight: 600; cursor: pointer; }
 </style>

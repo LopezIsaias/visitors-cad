@@ -68,8 +68,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 // Valida y normaliza los campos comunes del visitante. Devuelve {data} o {error,campo}.
 function parseVisitante(form: FormData) {
-	const dni = String(form.get('dni') ?? '').trim();
-	if (!/^[0-9]{8}$/.test(dni)) return { error: 'El DNI debe tener 8 dígitos.', campo: 'dni' };
+	let dni: string;
+	if (form.get('sin_dni')) {
+		dni = 'NO PROPORCIONÓ';
+	} else {
+		dni = String(form.get('dni') ?? '').trim();
+		if (!/^[0-9]{8}$/.test(dni)) return { error: 'El DNI debe tener 8 dígitos.', campo: 'dni' };
+	}
 
 	const nombre = UP(form.get('nombre'));
 	if (!nombre) return { error: 'Falta el nombre.', campo: 'nombre' };
@@ -138,13 +143,17 @@ export const actions: Actions = {
 		const supabase = locals.supabase;
 
 		// Reusar si ya existe ese DNI en el CAD; si no, crearlo.
+		// Los sin-DNI (NO PROPORCIONÓ) no son únicos: nunca se reusan, siempre nuevo.
 		let visitanteId: number;
-		const { data: existente } = await supabase
-			.from('visitantes')
-			.select('id')
-			.eq('cad_id', perfil.cad_id)
-			.eq('dni', v.dni)
-			.maybeSingle();
+		const { data: existente } =
+			v.dni === 'NO PROPORCIONÓ'
+				? { data: null }
+				: await supabase
+						.from('visitantes')
+						.select('id')
+						.eq('cad_id', perfil.cad_id)
+						.eq('dni', v.dni)
+						.maybeSingle();
 
 		if (existente) {
 			visitanteId = existente.id;
