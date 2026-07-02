@@ -7,6 +7,8 @@
 
 	let cad = $state(data.cadId ? String(data.cadId) : '');
 	let subiendo = $state(false);
+	let editando = $state<number | null>(null);
+	let guardando = $state(false);
 
 	function cambiarCad() {
 		goto(cad ? `?cad=${cad}` : '?', { noScroll: true });
@@ -86,23 +88,78 @@
 		<table>
 			<thead><tr>
 				<th>DNI</th><th>Nombre</th><th>Apellido</th><th class="r">Edad</th>
-				<th>Género</th><th>Discap.</th><th>Teléfono</th><th>Ocupación</th>
+				<th>Género</th><th>Discap.</th><th>Teléfono</th><th>Ocupación</th><th></th>
 			</tr></thead>
 			<tbody>
 				{#if data.visitantes.length === 0}
-					<tr><td colspan="8" class="vacio">Este CAD aún no tiene visitantes. Sube un archivo para empezar.</td></tr>
+					<tr><td colspan="9" class="vacio">Este CAD aún no tiene visitantes. Sube un archivo para empezar.</td></tr>
 				{:else}
 					{#each data.visitantes as v (v.id)}
-						<tr>
-							<td class="mono">{v.dni}</td><td>{v.nombre}</td><td>{v.apellido}</td>
-							<td class="r">{v.edad}</td><td>{v.genero}</td><td>{v.discapacidad}</td>
-							<td class="mono">{v.telefono}</td><td>{v.ocupacion}</td>
-						</tr>
+						{#if editando === v.id}
+							<tr class="editrow">
+								<td colspan="9">
+									<form
+										method="POST"
+										action="?/editar"
+										use:enhance={() => {
+											guardando = true;
+											return async ({ result, update }) => {
+												await update({ reset: false });
+												if (result.type === 'success') {
+													await invalidateAll();
+													editando = null;
+												}
+												guardando = false;
+											};
+										}}
+									>
+										<input type="hidden" name="id" value={v.id} />
+										<div class="grid">
+											<label>DNI<input name="dni" inputmode="numeric" maxlength="8" value={v.dni} required /></label>
+											<label>Nombre<input name="nombre" value={v.nombre} required /></label>
+											<label>Apellido<input name="apellido" value={v.apellido} required /></label>
+											<label>Edad<input name="edad" type="number" min="0" max="120" value={v.edad} required /></label>
+											<label>Género
+												<select name="genero" value={v.genero}>
+													<option value="MASCULINO">MASCULINO</option>
+													<option value="FEMENINO">FEMENINO</option>
+												</select>
+											</label>
+											<label>Discapacidad
+												<select name="discapacidad" value={v.discapacidad}>
+													<option value="NO">NO</option>
+													<option value="SI">SI</option>
+												</select>
+											</label>
+											<label>Teléfono<input name="telefono" value={v.telefono} placeholder="9 dígitos o NO TIENE" /></label>
+											<label>Ocupación
+												<input name="ocupacion" list="ocupaciones" value={v.ocupacion} />
+											</label>
+										</div>
+										{#if form?.editError}<p class="err" role="alert">{form.editError}</p>{/if}
+										<div class="acciones">
+											<button class="primary" type="submit" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</button>
+											<button type="button" class="ghost" onclick={() => (editando = null)}>Cancelar</button>
+										</div>
+									</form>
+								</td>
+							</tr>
+						{:else}
+							<tr>
+								<td class="mono">{v.dni}</td><td>{v.nombre}</td><td>{v.apellido}</td>
+								<td class="r">{v.edad}</td><td>{v.genero}</td><td>{v.discapacidad}</td>
+								<td class="mono">{v.telefono}</td><td>{v.ocupacion}</td>
+								<td class="r"><button type="button" class="link" onclick={() => (editando = v.id)}>Editar</button></td>
+							</tr>
+						{/if}
 					{/each}
 				{/if}
 			</tbody>
 		</table>
 	</div>
+	<datalist id="ocupaciones">
+		{#each data.ocupaciones as o}<option value={o}></option>{/each}
+	</datalist>
 {/if}
 
 <style>
@@ -136,4 +193,11 @@
 	.r { text-align: right; font-variant-numeric: tabular-nums; }
 	.mono { font-family: ui-monospace, monospace; }
 	.vacio { text-align: center; color: var(--muted); padding: 1.6rem; white-space: normal; }
+	.link { background: none; border: none; color: var(--canopy); font-weight: 700; cursor: pointer; font-size: 0.82rem; padding: 0; }
+	.editrow td { white-space: normal; background: rgba(31,184,166,0.06); }
+	.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 0.7rem; }
+	.grid label { display: flex; flex-direction: column; font-size: 0.72rem; font-weight: 600; color: var(--muted); gap: 0.25rem; }
+	.grid input, .grid select { padding: 0.5rem 0.6rem; border: 1.5px solid var(--mist); border-radius: 8px; font-size: 0.9rem; text-transform: uppercase; }
+	.acciones { display: flex; gap: 0.6rem; margin-top: 0.8rem; }
+	.ghost { background: none; border: 1.5px solid var(--mist); border-radius: 10px; padding: 0.6rem 1.1rem; font-weight: 600; cursor: pointer; }
 </style>

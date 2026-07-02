@@ -9,6 +9,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const cadId = Number(url.searchParams.get('cad')) || null;
 
 	const { data: cads } = await locals.supabase.from('cads').select('id, nombre').order('nombre');
+	const { data: ocupaciones } = await locals.supabase
+		.from('ocupaciones')
+		.select('nombre')
+		.order('nombre');
 
 	let visitantes: any[] = [];
 	if (cadId) {
@@ -20,7 +24,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		visitantes = data ?? [];
 	}
 
-	return { cads: cads ?? [], cadId, visitantes };
+	return {
+		cads: cads ?? [],
+		cadId,
+		visitantes,
+		ocupaciones: (ocupaciones ?? []).map((o) => o.nombre as string)
+	};
 };
 
 // Normaliza encabezados: MAYÚSCULAS, sin acentos, sin espacios extra.
@@ -88,6 +97,35 @@ function parseRow(row: Record<string, unknown>): { data: Visitante } | { error: 
 }
 
 export const actions: Actions = {
+	editar: async ({ request, locals }) => {
+		await requireSuperadmin(locals);
+		const f = await request.formData();
+		const id = Number(f.get('id'));
+		if (!id) return fail(400, { editError: 'Falta el visitante a editar.' });
+
+		// Reusa parseRow: valida y normaliza igual que la carga masiva.
+		const res = parseRow({
+			DNI: f.get('dni'),
+			NOMBRE: f.get('nombre'),
+			APELLIDO: f.get('apellido'),
+			EDAD: f.get('edad'),
+			GENERO: f.get('genero'),
+			DISCAPACIDAD: f.get('discapacidad'),
+			TELEFONO: f.get('telefono'),
+			OCUPACION: f.get('ocupacion')
+		});
+		if ('error' in res) return fail(400, { editError: res.error });
+
+		const { error } = await supabaseAdmin.from('visitantes').update(res.data).eq('id', id);
+		if (error) {
+			const msg =
+				error.code === '23505'
+					? `Ya existe otro visitante con el DNI ${res.data.dni} en este CAD.`
+					: `No se pudo guardar: ${error.message}`;
+			return fail(400, { editError: msg });
+		}
+		return { editOk: true };
+	},
 	subir: async ({ request, locals }) => {
 		await requireSuperadmin(locals);
 		const form = await request.formData();
