@@ -7,7 +7,7 @@ const HEADERS = ['DNI', 'NOMBRE', 'APELLIDO', 'EDAD', 'GENERO', 'DISCAPACIDAD', 
 // Filas de ejemplo (se borran antes de subir las reales).
 const EJEMPLOS = [
 	['12345678', 'JUAN', 'PEREZ QUISPE', 34, 'MASCULINO', 'NO', '987654321', 'AGRICULTOR(A)'],
-	['25012006', 'MARIA', 'FLORES RAMOS', 19, 'FEMENINO', 'NO', 'NO TIENE', 'ESTUDIANTE']
+	['25012006', 'MARIA', 'FLORES RAMOS', 19, 'FEMENINO', 'NO', 'NO PROPORCIONÓ', 'ESTUDIANTE']
 ];
 
 export const GET: RequestHandler = async ({ locals }) => {

@@ -91,12 +91,13 @@ function parseRow(
 	let telefono: string;
 	const telRaw = g('TELEFONO');
 	const telDigits = telRaw.replace(/\D/g, '');
-	if (!telRaw || norm(telRaw) === 'NO TIENE' || norm(telRaw) === 'NOTIENE') {
-		telefono = 'NO TIENE';
+	const telNorm = norm(telRaw);
+	if (!telRaw || telNorm === 'NO TIENE' || telNorm === 'NOTIENE' || telNorm === 'NO PROPORCIONO') {
+		telefono = 'NO PROPORCIONÓ';
 	} else if (/^[0-9]{9}$/.test(telDigits)) {
 		telefono = telDigits;
 	} else {
-		return { error: `TELEFONO inválido ("${telRaw}"): 9 dígitos o "NO TIENE".` };
+		return { error: `TELEFONO inválido ("${telRaw}"): 9 dígitos o "NO PROPORCIONÓ".` };
 	}
 
 	const ocupacion = UP(g('OCUPACION')) || 'OTRO';

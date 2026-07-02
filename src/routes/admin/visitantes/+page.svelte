@@ -138,7 +138,7 @@
 													<option value="SI">SI</option>
 												</select>
 											</label>
-											<label>Teléfono<input name="telefono" value={v.telefono} placeholder="9 dígitos o NO TIENE" /></label>
+											<label>Teléfono<input name="telefono" value={v.telefono} placeholder="9 dígitos o NO PROPORCIONÓ" /></label>
 											<label>Ocupación
 												<input name="ocupacion" list="ocupaciones" value={v.ocupacion} />
 											</label>

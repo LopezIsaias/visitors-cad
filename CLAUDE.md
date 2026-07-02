@@ -94,15 +94,16 @@ Dos roles, guardados en la tabla `perfiles.rol`:
 
 ### 4.2 Teléfono
 - Acepta **únicamente 9 dígitos** (sin letras ni caracteres especiales).
-- Debe existir una **casilla** "no cuenta con teléfono". Al marcarla, el sistema guarda el literal **`NO TIENE`** y permite guardar aunque el campo esté vacío (el campo es obligatorio, pero la casilla lo satisface).
+- Debe existir una **casilla** "no cuenta con teléfono". Al marcarla, el sistema guarda el literal **`NO PROPORCIONÓ`** y permite guardar aunque el campo esté vacío (el campo es obligatorio, pero la casilla lo satisface). (Mismo literal que se usa para el DNI sin proporcionar.)
 - Si **no** se marca la casilla y **no** se ingresó nada → **no se permite guardar**; mostrar al usuario qué dato falta.
-- En BD `telefono` es `text` con CHECK: `^[0-9]{9}$` **o** `NO TIENE`.
+- En BD `telefono` es `text` con CHECK: `^[0-9]{9}$` **o** `NO PROPORCIONÓ`.
 
 ### 4.3 DNI
 - Obligatorio. Acepta **solo 8 dígitos** enteros.
 - Si la persona no tiene DNI, sugerir (texto de ayuda) escribir los **8 dígitos de su fecha de nacimiento**, formato DDMMAAAA. Ejemplo: `25012006`.
-- **Unicidad por CAD, no global:** restricción `UNIQUE (cad_id, dni)`. El mismo número puede existir en CADs distintos, pero no repetirse dentro del mismo CAD. En la práctica puede haber, en teoría, hasta 61 visitantes con el mismo número (uno por CAD).
-- En BD `dni` es `text` con CHECK `^[0-9]{8}$` (texto para preservar ceros iniciales).
+- Debe existir una **casilla** "no cuenta con DNI". Al marcarla, se limpia/bloquea el campo y el sistema guarda el literal **`NO PROPORCIONÓ`** (mismo literal que para el teléfono sin proporcionar).
+- **Unicidad por CAD, no global:** restricción `UNIQUE (cad_id, dni)` **solo para DNIs reales** (índice único parcial `WHERE dni ~ '^[0-9]{8}$'`). El mismo número puede existir en CADs distintos, pero no repetirse dentro del mismo CAD. Los `NO PROPORCIONÓ` **no** entran en la unicidad: puede haber varios por CAD (y por eso nunca se reutilizan por DNI; se buscan por nombre).
+- En BD `dni` es `text` con CHECK `^[0-9]{8}$` **o** `NO PROPORCIONÓ` (texto para preservar ceros iniciales).
 
 ### 4.4 Visitante recurrente (reutilización de datos)
 - Los datos de cada visitante se almacenan de forma permanente (tabla `visitantes`).
@@ -121,7 +122,7 @@ Schema `public`. No recrear; usar tal cual. Resumen:
 - **cads** (`id` bigint PK identity, `nombre` text unique, `creado_en`). 60 filas cargadas.
 - **perfiles** (`id` uuid PK → auth.users, `rol` check in (superadmin,lider), `cad_id` → cads, `nombre`, `creado_en`). Superadmin ya insertado (UID `b1a8796a-e34a-4953-a70e-625f4f2d1ed9`).
 - **ocupaciones** (`id` bigint PK identity, `nombre` text unique). Catálogo en MAYÚSCULAS, ~120 filas, incluye `OTRO`.
-- **visitantes** (`id` bigint PK, `cad_id` → cads, `dni` text `^[0-9]{8}$`, `nombre`, `apellido`, `edad` int 0–120, `genero` in (Masculino,Femenino), `discapacidad` in (si,no), `telefono` text `^[0-9]{9}$` o `NO TIENE`, `ocupacion`, `creado_en`, **UNIQUE (cad_id, dni)**).
+- **visitantes** (`id` bigint PK, `cad_id` → cads, `dni` text `^[0-9]{8}$` o `NO PROPORCIONÓ`, `nombre`, `apellido`, `edad` int 0–120, `genero` in (Masculino,Femenino), `discapacidad` in (si,no), `telefono` text `^[0-9]{9}$` o `NO PROPORCIONÓ`, `ocupacion`, `creado_en`, **UNIQUE (cad_id, dni) parcial solo para DNIs reales** (índice `WHERE dni ~ '^[0-9]{8}$'`)).
 - **registros** (`id` bigint PK, `visitante_id` → visitantes, `cad_id` → cads, `lider_id` → auth.users, `fecha` date default hoy-Lima, `hora_entrada` timestamptz default now, `hora_salida` timestamptz, `minutos` int, `estado` in (en_curso,finalizado) default en_curso, `creado_en`). Índices en (cad_id, fecha) y (estado).
 
 ### Funciones (Postgres)
@@ -160,7 +161,7 @@ Schema `public`. No recrear; usar tal cual. Resumen:
 
 ### 7.2 Vista Líder digital (móvil, mínima)
 - **Pantalla principal:** lista de registros **del día** (solo hoy, Lima) mostrando **DNI · Nombre completo · Estado** (En curso / Finalizado), con botón **"Finalizar"** en los que están en curso.
-- **Registrar nuevo visitante:** formulario con todos los campos (§4). Validaciones: edad solo números; teléfono 9 dígitos o casilla "NO TIENE"; DNI 8 dígitos con texto de ayuda sobre fecha de nacimiento; género y discapacidad desplegables; cargo con buscador autocompletar sobre `ocupaciones`. Texto → MAYÚSCULAS al guardar. Crea visitante (si no existe en el CAD) + registro con hora_entrada.
+- **Registrar nuevo visitante:** formulario con todos los campos (§4). Validaciones: edad solo números; teléfono 9 dígitos o casilla "no cuenta con teléfono" (guarda `NO PROPORCIONÓ`); DNI 8 dígitos con texto de ayuda sobre fecha de nacimiento; género y discapacidad desplegables; cargo con buscador autocompletar sobre `ocupaciones`. Texto → MAYÚSCULAS al guardar. Crea visitante (si no existe en el CAD) + registro con hora_entrada.
 - **Registrar visita de recurrente:** buscar por DNI o nombre dentro del CAD → autocompletar (edad editable) → "Registrar visita" → nuevo registro.
 - **Finalizar:** llama `finalizar_registro` (RPC). No editar ni borrar nada más.
 - La fecha NO la ingresa el usuario; la pone el sistema.

@@ -96,7 +96,7 @@ function parseVisitante(form: FormData) {
 
 	let telefono: string;
 	if (form.get('sin_telefono')) {
-		telefono = 'NO TIENE';
+		telefono = 'NO PROPORCIONÓ';
 	} else {
 		const t = String(form.get('telefono') ?? '').trim();
 		if (!t) return { error: 'Ingresa el teléfono o marca "No cuenta con teléfono".', campo: 'telefono' };
